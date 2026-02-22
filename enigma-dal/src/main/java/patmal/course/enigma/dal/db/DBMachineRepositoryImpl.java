@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import patmal.course.enigma.component.reflector.Reflector;
 import patmal.course.enigma.component.rotor.Rotor;
 import patmal.course.enigma.dal.api.MachineRepository;
+import patmal.course.enigma.dal.db.jpa.JpaProcessingRepository;
 import patmal.course.enigma.dal.dto.MachinePersistenceEntity;
 import patmal.course.enigma.dal.db.jpa.JpaMachineRepository;
 import patmal.course.enigma.dal.dto.ReflectorPersistenceEntity;
@@ -19,10 +20,12 @@ import java.util.stream.Collectors;
 public class DBMachineRepositoryImpl implements MachineRepository {
 
     private final JpaMachineRepository jpaMachineRepository;
+    private final JpaProcessingRepository jpaProcessingRepository;
     private final ConversionService conversionService;
 
-    public DBMachineRepositoryImpl(JpaMachineRepository jpaMachineRepository, ConversionService conversionService) {
+    public DBMachineRepositoryImpl(JpaMachineRepository jpaMachineRepository, JpaProcessingRepository jpaProcessingRepository, ConversionService conversionService) {
         this.jpaMachineRepository = jpaMachineRepository;
+        this.jpaProcessingRepository = jpaProcessingRepository;
         this.conversionService = conversionService;
     }
 
@@ -65,6 +68,12 @@ public class DBMachineRepositoryImpl implements MachineRepository {
                 .orElseThrow(() -> new RuntimeException("Machine not found: " + name));
 
         return conversionService.convert(entity, Repository.class);
+    }
+
+    @Override
+    public int getProcessedMessageCount(String machineName) {
+        // This executes a "SELECT COUNT(*) FROM processing WHERE machine_name = ..."
+        return (int) jpaProcessingRepository.countByMachineName(machineName);
     }
 
     private RotorPersistenceEntity mapToRotorEntity(Rotor rotor, MachinePersistenceEntity machine) {

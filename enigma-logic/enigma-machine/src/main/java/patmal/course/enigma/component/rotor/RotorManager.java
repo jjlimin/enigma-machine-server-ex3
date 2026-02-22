@@ -64,4 +64,8 @@ public class RotorManager implements Serializable {
             rotor.setPosition(positions.get(i));
         }
     }
+
+    public List<Character> getCurrentPositions() {
+        return null;
+    }
 }

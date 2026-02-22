@@ -1,13 +1,27 @@
 package patmal.course.enigma.session;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import patmal.course.enigma.engine.logic.Engine;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+import java.util.Map;
 
 @Data
+@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 public class EnigmaSession {
-    private final String sessionId;
-    private final String machineName;
-    private final Engine engine;
+    private String sessionId;
+    private String machineName;
+
+    // Persisted choices
+    private List<Integer> currentRotorIds;
+    private String currentReflectorId;
+    private Map<Character, Character> currentPlugs;
+
+    // Current dynamic state
+    private List<Character> currentPositions;
+    private List<Character> originalPositions;
 }

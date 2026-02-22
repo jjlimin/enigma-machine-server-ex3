@@ -7,4 +7,5 @@ public interface MachineRepository {
     MachinePersistenceEntity save(Repository repository);
     boolean existsByName(String name);
     Repository getMachineByName(String name);
+    int getProcessedMessageCount(String machineName);
 }

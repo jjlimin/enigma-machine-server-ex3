@@ -52,4 +52,9 @@ public class MachineImpl implements Machine, Serializable {
         return keyboard.indexToChar(finalOutputIndex);
     }
 
+    @Override
+    public RotorManager getRotorManager() {
+        return rotorManager;
+    }
+
 }
