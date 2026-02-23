@@ -12,11 +12,14 @@ public interface Rotor {
     void rotate();
     int getTopLetter();
 
-
     void setId(int id);
     int getId();
     void setKeyboard(Keyboard keyboard);
 
     List<Integer> getRightColumn();
     List<Integer> getLeftColumn();
+
+    Keyboard getKeyboard();
+
+    Rotor cloneRotor();
 }

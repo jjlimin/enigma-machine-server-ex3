@@ -15,6 +15,7 @@
         <module>enigma-api</module>
         <module>enigma-dal</module>
         <module>enigma-sessions</module>
+        <module>enigma-core</module>
     </modules>
 
     <properties>

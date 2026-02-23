@@ -9,4 +9,5 @@ public interface JpaProcessingRepository extends JpaRepository<ProcessingPersist
     // Helpful for the History flow later
     List<ProcessingPersistenceEntity> findBySessionId(String sessionId);
     List<ProcessingPersistenceEntity> findByMachineName(String machineName);
+    long countByMachineName(String machineName);
 }

@@ -1,13 +1,15 @@
 package patmal.course.enigma.dal.db;
 
-import lombok.RequiredArgsConstructor;
+import jakarta.transaction.Transactional;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Component;
 import patmal.course.enigma.component.reflector.Reflector;
 import patmal.course.enigma.component.rotor.Rotor;
 import patmal.course.enigma.dal.api.MachineRepository;
+import patmal.course.enigma.dal.db.jpa.JpaProcessingRepository;
 import patmal.course.enigma.dal.dto.MachinePersistenceEntity;
 import patmal.course.enigma.dal.db.jpa.JpaMachineRepository;
+import patmal.course.enigma.dal.dto.ProcessingPersistenceEntity;
 import patmal.course.enigma.dal.dto.ReflectorPersistenceEntity;
 import patmal.course.enigma.dal.dto.RotorPersistenceEntity;
 import patmal.course.enigma.engine.logic.repository.Repository;
@@ -19,10 +21,12 @@ import java.util.stream.Collectors;
 public class DBMachineRepositoryImpl implements MachineRepository {
 
     private final JpaMachineRepository jpaMachineRepository;
+    private final JpaProcessingRepository jpaProcessingRepository;
     private final ConversionService conversionService;
 
-    public DBMachineRepositoryImpl(JpaMachineRepository jpaMachineRepository, ConversionService conversionService) {
+    public DBMachineRepositoryImpl(JpaMachineRepository jpaMachineRepository, JpaProcessingRepository jpaProcessingRepository, ConversionService conversionService) {
         this.jpaMachineRepository = jpaMachineRepository;
+        this.jpaProcessingRepository = jpaProcessingRepository;
         this.conversionService = conversionService;
     }
 
@@ -65,6 +69,33 @@ public class DBMachineRepositoryImpl implements MachineRepository {
                 .orElseThrow(() -> new RuntimeException("Machine not found: " + name));
 
         return conversionService.convert(entity, Repository.class);
+    }
+
+    @Override
+    public int getProcessedMessageCount(String machineName) {
+        // This executes a "SELECT COUNT(*) FROM processing WHERE machine_name = ..."
+        return (int) jpaProcessingRepository.countByMachineName(machineName);
+    }
+
+    @Override
+    @Transactional
+    public void saveProcessingEntry(String machineName, String sessionID, String input, String output, String code, Long duration) {
+        // 1. Resolve the name to a full Entity (to get the UUID)
+        MachinePersistenceEntity machineEntity = jpaMachineRepository.findByName(machineName)
+                .orElseThrow(() -> new RuntimeException("Machine not found for name: " + machineName));
+
+        // 2. Build the entity using the @Builder you defined
+        ProcessingPersistenceEntity entity = ProcessingPersistenceEntity.builder()
+                .machine(machineEntity) // This satisfies the 'machine_id' UUID FK requirement
+                .sessionId(sessionID)
+                .code(code) // The compact code string like <1,2><A(0),A(0)><II><A|F>
+                .input(input)
+                .output(output)
+                .time(duration) // nanoseconds
+                .build();
+
+        // 3. Save to the database
+        jpaProcessingRepository.save(entity);
     }
 
     private RotorPersistenceEntity mapToRotorEntity(Rotor rotor, MachinePersistenceEntity machine) {

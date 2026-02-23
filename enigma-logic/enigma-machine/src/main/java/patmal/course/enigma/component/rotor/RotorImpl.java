@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import patmal.course.enigma.component.keyboard.Keyboard;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 public class RotorImpl implements Rotor, Serializable {
@@ -48,6 +49,33 @@ public class RotorImpl implements Rotor, Serializable {
     @Override
     public List<Integer> getLeftColumn() {
         return leftColumn;
+    }
+
+    @Override
+    public Keyboard getKeyboard() {
+        return keyboard;
+    }
+
+    @Override
+    public Rotor cloneRotor() {
+        // 1. Create the instance.
+        // Pass (notchPosition + 1) so the constructor's (- 1) levels it out.
+        RotorImpl cloned = new RotorImpl(
+                new ArrayList<>(this.rightColumn),
+                new ArrayList<>(this.leftColumn),
+                this.notchPosition + 1, // Fix the constructor adjustment
+                this.alphabetLength
+        );
+
+        // 2. Copy the state
+        cloned.setId(this.getId());
+        cloned.setKeyboard(this.getKeyboard());
+
+        // 3. IMPORTANT: Do not call setPosition() here if it triggers rotate() logic.
+        // Since we copied the columns directly, the position is already correct.
+        // If you want to be explicit, add a direct position setter that doesn't rotate.
+
+        return cloned;
     }
 
     @Override

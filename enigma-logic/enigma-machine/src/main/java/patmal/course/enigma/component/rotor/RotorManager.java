@@ -64,4 +64,11 @@ public class RotorManager implements Serializable {
             rotor.setPosition(positions.get(i));
         }
     }
+
+    public List<Character> getCurrentPositions() {
+        // Map each rotor to its current character
+        return currentRotors.stream()
+                .map(rotor -> rotor.getKeyboard().indexToChar(rotor.getTopLetter()))
+                .toList();
+    }
 }

@@ -21,18 +21,17 @@ public class SessionService {
     }
 
     public String createSession(String machineName) {
-
         if (!machineRepository.existsByName(machineName)) {
             throw new IllegalArgumentException("Machine not found: " + machineName);
         }
 
-        Repository repository = machineRepository.getMachineByName(machineName);
-        Engine engine = new EngineImpl(repository);
         String sessionId = UUID.randomUUID().toString();
 
-        EnigmaSession newSession = new EnigmaSession(sessionId, machineName, engine);
-        sessions.put(sessionId, newSession);
+        EnigmaSession newSession = new EnigmaSession();
+        newSession.setSessionId(sessionId);
+        newSession.setMachineName(machineName);
 
+        sessions.put(sessionId, newSession);
         return sessionId;
     }
 
