@@ -8,4 +8,5 @@ public interface MachineRepository {
     boolean existsByName(String name);
     Repository getMachineByName(String name);
     int getProcessedMessageCount(String machineName);
+    void saveProcessingEntry(String machineName, String sessionID, String input, String output, String code, Long duration);
 }

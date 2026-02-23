@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import patmal.course.enigma.core.service.ConfigService;
 import patmal.course.enigma.core.dto.EnigmaManualConfigRequest;
-import patmal.course.enigma.core.dto.MachineConfigResponseDTO;
 
 import java.util.Map;
 

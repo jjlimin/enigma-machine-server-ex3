@@ -1,27 +1,24 @@
 package patmal.course.enigma.core.service;
 
 import org.springframework.stereotype.Service;
-import patmal.course.enigma.component.keyboard.Keyboard;
 import patmal.course.enigma.core.dto.*;
+import patmal.course.enigma.core.formatter.EnigmaFormatter;
 import patmal.course.enigma.dal.api.MachineRepository;
 import patmal.course.enigma.engine.logic.repository.Repository;
 import patmal.course.enigma.session.EnigmaSession;
 import patmal.course.enigma.session.service.SessionService;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 public class ConfigService {
     private final SessionService sessionService;
     private final MachineRepository machineRepository; // To fetch the catalog for validation
+    private final EnigmaFormatter formatter;
 
-    public ConfigService(SessionService sessionService, MachineRepository machineRepository) {
+    public ConfigService(SessionService sessionService, MachineRepository machineRepository, EnigmaFormatter formatter) {
         this.sessionService = sessionService;
         this.machineRepository = machineRepository;
+        this.formatter = formatter;
     }
 
     public MachineConfigResponseDTO getCurrentStatus(String sessionID, boolean verbose) throws IllegalAccessException {
@@ -37,8 +34,9 @@ public class ConfigService {
                 .totalRotors(catalog.getAllRotors().size())
                 .totalReflectors(catalog.getAllReflectors().size())
                 .totalProcessedMessages(processedCount)
-                .originalCodeCompact(formatFullOriginalCode(session, catalog))
-                .currentRotorsPositionCompact(formatPositions(session.getCurrentRotorIds(), session.getOriginalPositions(), catalog));
+                .originalCodeCompact(formatter.formatFullOriginalCode(session, catalog))
+                .currentRotorsPositionCompact(formatter.formatPositions(session.getCurrentRotorIds(), session.getCurrentPositions(), catalog));
+                //.currentRotorsPositionCompact(formatter.formatPositions(session.getCurrentRotorIds(), session.getOriginalPositions(), catalog));
 
         // If verbose is true, build the complex nested objects
         if (verbose) {
@@ -188,54 +186,4 @@ public class ConfigService {
         return plugMap;
     }
 
-    private String formatPositions(List<Integer> rotorIds, List<Character> positions, Repository catalog) {
-        if (positions == null || positions.isEmpty() || rotorIds == null) {
-            return "";
-        }
-
-        List<String> formatted = new ArrayList<>();
-        Keyboard keyboard = catalog.getKeyboard();
-        int alphabetSize = keyboard.getAlphabetLength();
-
-        for (int i = 0; i < positions.size(); i++) {
-            int id = rotorIds.get(i);
-            char pos = positions.get(i);
-
-            // 1. Get the actual rotor component to find its notch position
-            var rotorComponent = catalog.getAllRotors().get(id);
-            int currentIdx = keyboard.charToIndex(pos);
-            int notchIdx = rotorComponent.getNotchPosition() + 1;
-
-            // 2. Calculate steps until notch: (Notch - Current + Size) % Size
-            // This gives the distance from the current position to the notch
-            int distanceToNotch = (notchIdx - currentIdx + alphabetSize) % alphabetSize;
-
-            // 3. Format as "Char(Distance)"
-            formatted.add(String.format("%c(%d)", pos, distanceToNotch));
-        }
-
-        return String.join(",", formatted);
-    }
-
-    private String formatFullOriginalCode(EnigmaSession session, Repository catalog) {
-        // 1. Format Rotor IDs: <1,2,3>
-        String ids = session.getCurrentRotorIds().stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining(",", "<", ">"));
-
-        // 2. Format Initial Positions: <A(0),B(1)>
-        String pos = formatPositions(session.getCurrentRotorIds(), session.getOriginalPositions(), catalog);
-        pos = "<" + pos + ">";
-
-        // 3. Format Reflector: <III>
-        String reflector = "<" + session.getCurrentReflectorId() + ">";
-
-        // 4. Format Plugs (if any): <A|Z,B|Y>
-        String plugs = session.getCurrentPlugs().entrySet().stream()
-                .filter(e -> e.getKey() < e.getValue()) // Avoid duplicates like A|Z and Z|A
-                .map(e -> e.getKey() + "|" + e.getValue())
-                .collect(Collectors.joining(",", "<", ">"));
-
-        return ids + pos + reflector + (plugs.equals("<>") ? "" : plugs);
-    }
 }

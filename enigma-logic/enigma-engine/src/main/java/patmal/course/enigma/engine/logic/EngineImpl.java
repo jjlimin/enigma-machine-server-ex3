@@ -36,8 +36,15 @@ public class EngineImpl implements Engine {
     }
 
     private Machine buildMachine(Repository repository, MachineConfiguration config) {
+//        List<Rotor> rotors = config.getRotorIds().stream()
+//                .map(id -> repository.getAllRotors().get(id))
+//                .toList();
         List<Rotor> rotors = config.getRotorIds().stream()
-                .map(id -> repository.getAllRotors().get(id))
+                .map(id -> {
+                    Rotor blueprint = repository.getAllRotors().get(id);
+                    // Assuming your RotorImpl has a copy constructor or clone method
+                    return blueprint.cloneRotor();
+                })
                 .toList();
 
         List<Integer> positionIndices = config.getStartingPositions().stream()
