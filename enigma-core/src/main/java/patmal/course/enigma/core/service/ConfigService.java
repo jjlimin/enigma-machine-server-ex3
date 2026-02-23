@@ -124,6 +124,16 @@ public class ConfigService {
                     catalog.getNumOfUsedRotorsInMachine() + ", but got: " + request.getRotors().size());
         }
 
+        // 2. Validate Duplicate Rotors (The Fix)
+        Set<Integer> uniqueRotorIds = new HashSet<>();
+        for (RotorSelection selection : request.getRotors()) {
+            if (!uniqueRotorIds.add(selection.getRotorNumber())) {
+                // .add() returns false if the ID was already in the set
+                throw new IllegalArgumentException("Duplicate rotor ID detected: " + selection.getRotorNumber() +
+                        ". Each rotor can only be used once.");
+            }
+        }
+
         // 2. Validate Individual Rotors and Positions
         for (RotorSelection selection : request.getRotors()) {
             if (!catalog.getAllRotors().containsKey(selection.getRotorNumber())) {
@@ -140,11 +150,21 @@ public class ConfigService {
             throw new IllegalArgumentException("Reflector ID '" + request.getReflector() + "' does not exist in this machine.");
         }
 
-        // 4. Validate Plugs
+        // 5. Validate Plugs
         if (request.getPlugs() != null) {
+            Set<Character> pluggedCharacters = new HashSet<>();
             for (PlugConnection plug : request.getPlugs()) {
                 char p1 = plug.getPlug1().toUpperCase().charAt(0);
                 char p2 = plug.getPlug2().toUpperCase().charAt(0);
+
+                // Additional Check: Ensure a character isn't plugged twice
+                if (!pluggedCharacters.add(p1) || !pluggedCharacters.add(p2)) {
+                    throw new IllegalArgumentException("Character already plugged: " + (pluggedCharacters.contains(p1) ? p1 : p2));
+                }
+                if (p1 == p2) {
+                    throw new IllegalArgumentException("A character cannot be plugged to itself: " + p1);
+                }
+
                 if (!catalog.getKeyboard().isValidChar(p1) || !catalog.getKeyboard().isValidChar(p2)) {
                     throw new IllegalArgumentException("Plugboard contains characters not in the keyboard alphabet.");
                 }
