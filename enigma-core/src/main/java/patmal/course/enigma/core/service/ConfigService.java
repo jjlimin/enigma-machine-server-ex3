@@ -107,7 +107,9 @@ public class ConfigService {
         List<Integer> rotorIds = request.getRotors().stream()
                 .map(RotorSelection::getRotorNumber).toList();
         List<Character> positions = request.getRotors().stream()
-                .map(RotorSelection::getRotorPosition).toList();
+                .map(RotorSelection::getRotorPosition)
+                .map(Character::toUpperCase)
+                .toList();
 
         // 2. State Update: Save to session memory
         session.setCurrentRotorIds(rotorIds);

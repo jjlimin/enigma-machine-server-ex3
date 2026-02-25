@@ -41,7 +41,7 @@ public class ProcessService {
                 .build();
 
         // 4. Run the logic
-        EnigmaResult result = engine.process(input, catalog, config);
+        EnigmaResult result = engine.process(input.toUpperCase(), catalog, config);
 
         // 5. Capture the "snapshot" of the code before updating the session
         // This is the string like <1,2><A(3),A(1)><II><A|F> required by your schema
