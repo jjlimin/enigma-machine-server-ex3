@@ -21,7 +21,6 @@ public class ConfigurationController {
             @RequestParam("sessionID") String sessionID,
             @RequestParam(value = "verbose", defaultValue = "false") boolean verbose) {
         try {
-            // Pass the verbose flag to the service
             return ResponseEntity.ok(configService.getCurrentStatus(sessionID, verbose));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
@@ -34,7 +33,6 @@ public class ConfigurationController {
             configService.setManualConfiguration(request);
             return ResponseEntity.ok("Manual code set successfully");
         } catch (IllegalArgumentException e) {
-            // Returns the validation error message to the user
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }

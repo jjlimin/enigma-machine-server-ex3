@@ -100,14 +100,16 @@ public class ConfigService {
         // Fetch the catalog from the DB to perform validation
         Repository catalog = machineRepository.getMachineByName(session.getMachineName());
 
-        // Step 1: Validate the request against the catalog
-        validateConfiguration(request, catalog);
-        
         // 1. Logic: Extract IDs and positions from the request
         List<Integer> rotorIds = request.getRotors().stream()
                 .map(RotorSelection::getRotorNumber).toList();
         List<Character> positions = request.getRotors().stream()
-                .map(RotorSelection::getRotorPosition).toList();
+                .map(RotorSelection::getRotorPosition)
+                .map(Character::toUpperCase)
+                .toList();
+
+        // Step 1: Validate the request against the catalog
+        validateConfiguration(request, catalog);
 
         // 2. State Update: Save to session memory
         session.setCurrentRotorIds(rotorIds);

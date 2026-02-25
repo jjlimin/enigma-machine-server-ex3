@@ -16,7 +16,6 @@ import patmal.course.enigma.component.rotor.Rotor;
 import patmal.course.enigma.component.rotor.RotorImpl;
 import patmal.course.enigma.engine.logic.repository.Repository;
 import patmal.course.enigma.loader.schema.*;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -101,7 +100,7 @@ public class LoadManager implements Serializable {
 //            int size = keyboard.getAlphabetLength() - 1;
 //            throw new IllegalArgumentException("Rotor notch must be between 0 and the length of the abc size minus one, which is currently " + size + ", but got " + notch + " for Rotor ID " + rotorId + ".");
 //        }
-        if(notch < 0 || notch > keyboard.getAlphabetLength()){
+        if(notch <= 0 || notch > keyboard.getAlphabetLength()){
             int size = keyboard.getAlphabetLength();
             throw new IllegalArgumentException("Rotor notch must be between 0 and the length of the abc size minus one, which is currently " + size + ", but got " + notch + " for Rotor ID " + rotorId + ".");
         }
@@ -158,6 +157,10 @@ public class LoadManager implements Serializable {
             List<Character> abcInRightColumn = new ArrayList<>(keyboard.toString().chars().mapToObj(c -> (char) c).toList());
 
             List<BTEPositioning> btePositioning = bteRotor.getBTEPositioning();
+
+            // Validate the rotor mapping before processing
+            validateRotorMapping(id, btePositioning, keyboard);
+
             for (BTEPositioning btePosition : btePositioning) {
                 if (btePosition.getLeft().length() == 1 && btePosition.getRight().length() == 1){
                     validateAndSetupPositioning(btePosition, keyboard, leftColumn, rightColumn, abcInLeftColumn, abcInRightColumn, id);
@@ -181,6 +184,109 @@ public class LoadManager implements Serializable {
         }
 
         return rotorMap;
+    }
+
+    private void validateRotorMapping(int rotorId, List<BTEPositioning> btePositioning, Keyboard keyboard) {
+        String abc = keyboard.toString();
+        int alphabetSize = keyboard.getAlphabetLength();
+
+        // Track characters found in left and right columns
+        Set<Character> leftCharsFound = new HashSet<>();
+        Set<Character> rightCharsFound = new HashSet<>();
+
+        // Track the mapping to ensure one-to-one correspondence
+        Map<Character, Character> leftToRightMapping = new HashMap<>();
+        Map<Character, Character> rightToLeftMapping = new HashMap<>();
+
+        logger.debug("Validating rotor mapping for Rotor ID: {}", rotorId);
+
+        for (BTEPositioning positioning : btePositioning) {
+            String leftStr = positioning.getLeft().trim().toUpperCase();
+            String rightStr = positioning.getRight().trim().toUpperCase();
+
+            if (leftStr.length() != 1 || rightStr.length() != 1) {
+                throw new IllegalArgumentException(
+                        "Rotor ID " + rotorId + " has position elements with invalid length. " +
+                                "Each position must have exactly 1 character, but got left='" + leftStr + "' and right='" + rightStr + "'.");
+            }
+
+            char leftChar = leftStr.charAt(0);
+            char rightChar = rightStr.charAt(0);
+
+            // Check if characters are in the defined alphabet
+            if (!abc.contains(String.valueOf(leftChar))) {
+                throw new IllegalArgumentException(
+                        "Rotor ID " + rotorId + " contains character '" + leftChar + "' in left positioning " +
+                                "which is not in the defined alphabet: " + abc);
+            }
+            if (!abc.contains(String.valueOf(rightChar))) {
+                throw new IllegalArgumentException(
+                        "Rotor ID " + rotorId + " contains character '" + rightChar + "' in right positioning " +
+                                "which is not in the defined alphabet: " + abc);
+            }
+
+            // Check for duplicate characters in left column
+            if (leftCharsFound.contains(leftChar)) {
+                throw new IllegalArgumentException(
+                        "Rotor ID " + rotorId + " has duplicate character '" + leftChar + "' in left positioning.");
+            }
+            leftCharsFound.add(leftChar);
+
+            // Check for duplicate characters in right column
+            if (rightCharsFound.contains(rightChar)) {
+                throw new IllegalArgumentException(
+                        "Rotor ID " + rotorId + " has duplicate character '" + rightChar + "' in right positioning.");
+            }
+            rightCharsFound.add(rightChar);
+
+            // Check for one-to-one mapping violations
+            if (leftToRightMapping.containsKey(leftChar)) {
+                char previousMapping = leftToRightMapping.get(leftChar);
+                if (previousMapping != rightChar) {
+                    throw new IllegalArgumentException(
+                            "Rotor ID " + rotorId + " has conflicting mapping for character '" + leftChar + "'. " +
+                                    "Mapped to both '" + previousMapping + "' and '" + rightChar + "'.");
+                }
+            }
+            leftToRightMapping.put(leftChar, rightChar);
+
+            if (rightToLeftMapping.containsKey(rightChar)) {
+                char previousMapping = rightToLeftMapping.get(rightChar);
+                if (previousMapping != leftChar) {
+                    throw new IllegalArgumentException(
+                            "Rotor ID " + rotorId + " has conflicting reverse mapping for character '" + rightChar + "'. " +
+                                    "Mapped from both '" + previousMapping + "' and '" + leftChar + "'.");
+                }
+            }
+            rightToLeftMapping.put(rightChar, leftChar);
+        }
+
+        // Check for completeness: all characters must be present
+        if (leftCharsFound.size() != alphabetSize) {
+            Set<Character> missingLeft = new HashSet<>();
+            for (char c : abc.toCharArray()) {
+                if (!leftCharsFound.contains(c)) {
+                    missingLeft.add(c);
+                }
+            }
+            throw new IllegalArgumentException(
+                    "Rotor ID " + rotorId + " is missing characters in left positioning. " +
+                            "Missing characters: " + missingLeft + ". All alphabet characters must be mapped exactly once.");
+        }
+
+        if (rightCharsFound.size() != alphabetSize) {
+            Set<Character> missingRight = new HashSet<>();
+            for (char c : abc.toCharArray()) {
+                if (!rightCharsFound.contains(c)) {
+                    missingRight.add(c);
+                }
+            }
+            throw new IllegalArgumentException(
+                    "Rotor ID " + rotorId + " is missing characters in right positioning. " +
+                            "Missing characters: " + missingRight + ". All alphabet characters must be mapped exactly once.");
+        }
+
+        logger.debug("Rotor ID {} mapping validation passed. All characters are properly mapped.", rotorId);
     }
 
     private Map<String, Reflector> createReflectorsMap(BTEReflectors bteReflectors, Keyboard keyboard) {

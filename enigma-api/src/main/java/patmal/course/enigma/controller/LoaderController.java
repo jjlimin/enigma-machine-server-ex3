@@ -6,9 +6,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import patmal.course.enigma.core.dto.LoadResponseDTO;
 import patmal.course.enigma.service.LoadService;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/enigma")
@@ -20,22 +19,19 @@ public class LoaderController {
     }
 
     @PostMapping(value = "/load", consumes = "multipart/form-data")
-    public ResponseEntity<?> loadMachine(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<LoadResponseDTO> loadMachine(@RequestParam("file") MultipartFile file) {
         try {
-            // Get the InputStream from the uploaded file and pass it to the service
             String machineName = loaderService.handleXmlImport(file.getInputStream());
 
-            // Return a success response with the assigned name
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "name", machineName
-            ));
+            return ResponseEntity.ok(LoadResponseDTO.builder()
+                    .success(true)
+                    .name(machineName)
+                    .build());
         } catch (Exception e) {
-            // Return 400 Bad Request if validation or parsing fails
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "error", e.getMessage()
-            ));
+            return ResponseEntity.badRequest().body(LoadResponseDTO.builder()
+                    .success(false)
+                    .error(e.getMessage())
+                    .build());
         }
     }
 }

@@ -29,8 +29,14 @@ public class HistoryService {
         // Fetch from DB based on provided parameter
         if (sessionID != null) {
             entities = processingRepository.findBySessionId(sessionID);
+            if (entities.isEmpty()) {
+                throw new IllegalArgumentException("No history found for the provided sessionID");
+            }
         } else {
             entities = processingRepository.findByMachineName(machineName);
+            if (entities.isEmpty()) {
+                throw new IllegalArgumentException("No history found for the provided  machineName");
+            }
         }
 
         // Group by the 'code' snapshot and map to DTOs

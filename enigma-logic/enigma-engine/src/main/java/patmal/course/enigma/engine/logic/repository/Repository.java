@@ -1,5 +1,6 @@
 package patmal.course.enigma.engine.logic.repository;
 
+import lombok.Getter;
 import patmal.course.enigma.component.keyboard.Keyboard;
 import patmal.course.enigma.component.reflector.Reflector;
 import patmal.course.enigma.component.rotor.Rotor;
@@ -8,10 +9,15 @@ import java.io.Serializable;
 import java.util.*;
 
 public class Repository implements Serializable {
+    @Getter
     private final String machineName;
+    @Getter
     private final Map<Integer, Rotor> allRotors;
+    @Getter
     private final Map<String, Reflector> allReflectors;
+    @Getter
     private final Keyboard keyboard;
+    @Getter
     private final int numOfUsedRotorsInMachine;
     private final Random randomGenerator;
 
@@ -22,26 +28,6 @@ public class Repository implements Serializable {
         this.keyboard = keyboard;
         this.numOfUsedRotorsInMachine = numOfUsedRotorsInMachine;
         this.randomGenerator = new Random();
-    }
-
-    public Map<Integer, Rotor> getAllRotors() {
-        return allRotors;
-    }
-
-    public Map<String, Reflector> getAllReflectors() {
-        return allReflectors;
-    }
-
-    public Keyboard getKeyboard() {
-        return keyboard;
-    }
-
-    public String getMachineName() {
-        return machineName;
-    }
-
-    public int getNumOfUsedRotorsInMachine() {
-        return numOfUsedRotorsInMachine;
     }
 
     public String getRandomReflectorId() {
