@@ -39,6 +39,7 @@
     </dependencies>
 
     <build>
+        <finalName>enigma-machine-server-ex3</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
