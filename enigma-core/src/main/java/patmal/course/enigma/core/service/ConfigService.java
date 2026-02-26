@@ -188,7 +188,7 @@ public class ConfigService {
         session.setCurrentPositions(new ArrayList<>(randomPositions));
         session.setOriginalPositions(new ArrayList<>(randomPositions));
         session.setCurrentReflectorId(catalog.getRandomReflectorId());
-        session.setCurrentPlugs(new HashMap<>()); // Typically empty for auto-setup
+        session.setCurrentPlugs(catalog.getRandomPlugboardPairs());
     }
 
     public void resetMachine(String sessionID) {

@@ -58,4 +58,31 @@ public class Repository implements Serializable {
         }
         return randomRotorStartingPositions;
     }
+
+    public Map<Character, Character> getRandomPlugboardPairs() {
+        int alphabetLength = keyboard.getAlphabetLength();
+        if (alphabetLength < 2) {
+            return new HashMap<>();
+        }
+
+        List<Character> availableChars = new ArrayList<>(alphabetLength);
+        for (int i = 0; i < alphabetLength; i++) {
+            availableChars.add(keyboard.indexToChar(i));
+        }
+
+        Collections.shuffle(availableChars, randomGenerator);
+
+        int maxPairs = alphabetLength / 2;
+        int pairsToUse = randomGenerator.nextInt(maxPairs + 1);
+
+        Map<Character, Character> plugs = new HashMap<>();
+        for (int i = 0; i < pairsToUse * 2; i += 2) {
+            char left = availableChars.get(i);
+            char right = availableChars.get(i + 1);
+            plugs.put(left, right);
+            plugs.put(right, left);
+        }
+
+        return plugs;
+    }
 }

@@ -32,16 +32,25 @@ public class AIService {
                     "- machines_reflectors(id UUID PK, machine_id UUID FK, reflector_id (enum), input TEXT, output TEXT)\n" +
                     "- processing(id UUID PK, machine_id UUID FK, session_id TEXT, code TEXT, input TEXT, output TEXT, time BIGINT)\n\n" +
                     "Rules:\n" +
-                    "1. Return ONLY raw SQL.\n" +
+                    "1. Return ONLY the raw SQL string. Do not use markdown code blocks (e.g., do not wrap in ```sql).\n" +
                     "2. ONLY generate SELECT queries. Prohibited: INSERT, UPDATE, DELETE, DROP, TRUNCATE.\n" +
-                    "3. Time is in nanoseconds.";
+                    "3. Time is in nanoseconds.\n" +
+                    "4. Be highly forgiving of typos, spelling mistakes (e.g., 'masages' instead of machines/messages), and poor grammar. Always try your best to infer the user's intent and map it to the provided schema to generate a valid SELECT query.\n" +
+                    "5. Return EXACTLY the string 'ERROR_INVALID_CONTEXT' ONLY if the user's prompt is completely unrelated to the Enigma system or data analysis (e.g., 'how are you', 'write a poem', 'what is the weather'). If there is any logical way to query the database based on the prompt, generate the SQL.";
 
     public AIResponseDTO handleAIQuery(String userQuery) {
         // Step 1: Text-to-SQL
         String sqlPrompt = SYSTEM_PROMPT + "\nUser Request: " + userQuery;
         String generatedSql = callOpenAI(sqlPrompt)
-                .replaceAll("```sql|```", "") // Clean AI markdown
+                .replaceAll("```sql|```", "") // Clean AI Markdown
                 .trim();
+
+        if ("ERROR_INVALID_CONTEXT".equals(generatedSql)) {
+            return new AIResponseDTO(
+                    "I can only answer questions related to the Enigma machine's data and processing history.",
+                    null
+            );
+        }
 
         // Security Check: Ensure it is a read-only SELECT
         if (!generatedSql.toUpperCase().startsWith("SELECT")) {
@@ -53,7 +62,13 @@ public class AIService {
 
         // Step 3: Natural Language Response
         String finalPrompt = String.format(
-                "User Question: %s\nDatabase Results: %s\nSummarize the results into a helpful answer.",
+                "User Question: %s\nDatabase Results: %s\n" +
+                        "Summarize the results into a helpful, conversational answer. " +
+                        "CRITICAL: Your response will be injected directly into a JSON string value. " +
+                        "Do NOT use any markdown formatting. " +
+                        "Do NOT use asterisks (*), hashtags (#), or bullet points. " +
+                        "Do NOT use explicit newline characters (\\n) or carriage returns. " +
+                        "Write the entire summary as a single, continuous, plain-text paragraph.",
                 userQuery, dbResults.toString()
         );
         String finalAnswer = callOpenAI(finalPrompt);
