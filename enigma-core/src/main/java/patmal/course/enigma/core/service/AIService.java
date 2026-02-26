@@ -40,7 +40,8 @@ public class AIService {
                     "2. ONLY generate SELECT queries. Prohibited: INSERT, UPDATE, DELETE, DROP, TRUNCATE.\n" +
                     "3. Time is in nanoseconds.\n" +
                     "4. Be highly forgiving of typos, spelling mistakes (e.g., 'masages' instead of machines/messages), and poor grammar. Always try your best to infer the user's intent and map it to the provided schema to generate a valid SELECT query.\n" +
-                    "5. Return EXACTLY the string 'ERROR_INVALID_CONTEXT' ONLY if the user's prompt is completely unrelated to the Enigma system or data analysis (e.g., 'how are you', 'write a poem', 'what is the weather'). If there is any logical way to query the database based on the prompt, generate the SQL.";
+                    "5. Return EXACTLY the string 'ERROR_INVALID_CONTEXT' ONLY if the user's prompt is completely unrelated to the Enigma system or data analysis (e.g., 'how are you', 'write a poem', 'what is the weather'). If there is any logical way to query the database based on the prompt, generate the SQL.\n +" +
+                    "6. Semantics: 'rotor_id' and 'reflector_id' are only unique PER MACHINE. To count total unique rotors or reflectors across the entire system, you must count the primary key 'id' (e.g., COUNT(id)) or use COUNT(*).";
 
     public AIResponseDTO handleAIQuery(String userQuery) {
         // Step 1: Text-to-SQL
