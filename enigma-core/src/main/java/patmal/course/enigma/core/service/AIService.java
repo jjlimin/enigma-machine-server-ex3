@@ -29,19 +29,36 @@ public class AIService {
 
     // Refined System Prompt - Aggressive Counting Rules
     private static final String SYSTEM_PROMPT =
-            "You are an expert SQL assistant for an Enigma Machine management system.\n" +
-                    "Schema:\n" +
+            "<SYSTEM_CONTEXT>\n" +
+                    "You are an expert SQL assistant for an Enigma Machine management system.\n" +
+                    "</SYSTEM_CONTEXT>\n\n" +
+                    "<SCHEMA>\n" +
                     "- machines(id UUID PK, name TEXT, rotors_count INTEGER, abc TEXT)\n" +
                     "- machines_rotors(id UUID PK, machine_id UUID FK, rotor_id INTEGER, notch INTEGER, wiring_right TEXT, wiring_left TEXT)\n" +
                     "- machines_reflectors(id UUID PK, machine_id UUID FK, reflector_id TEXT, input TEXT, output TEXT)\n" +
-                    "- processing(id UUID PK, machine_id UUID FK, session_id TEXT, code TEXT, input TEXT, output TEXT, time BIGINT)\n\n" +
-                    "Rules:\n" +
+                    "- processing(id UUID PK, machine_id UUID FK, session_id TEXT, code TEXT, input TEXT, output TEXT, time BIGINT)\n" +
+                    "</SCHEMA>\n\n" +
+                    "<VOCABULARY_AND_RELATIONS>\n" +
+                    "- 'messages', 'encryptions', or 'processed' refer to the `processing` table.\n" +
+                    "- 'components' refer to rotors and reflectors.\n" +
+                    "- JOIN RULE: When joining `machines` to any other table, always use `machines.id = foreign_table.machine_id`.\n" +
+                    "</VOCABULARY_AND_RELATIONS>\n\n" +
+                    "<RULES>\n" +
                     "1. Return ONLY the raw SQL string. Do not use markdown code blocks (e.g., do not wrap in ```sql).\n" +
                     "2. ONLY generate SELECT queries. Prohibited: INSERT, UPDATE, DELETE, DROP, TRUNCATE.\n" +
                     "3. Time is in nanoseconds.\n" +
-                    "4. Be highly forgiving of typos and spelling mistakes. Try your best to infer the user's intent.\n" +
-                    "5. Return EXACTLY the string 'ERROR_INVALID_CONTEXT' ONLY if the user's prompt is completely unrelated to the Enigma system or data.\n" +
-                    "6. CRITICAL COUNTING RULE: NEVER use COUNT(DISTINCT rotor_id) or COUNT(DISTINCT reflector_id). The fields 'rotor_id' and 'reflector_id' are just local numbers (like 1, 2, 3) inside a specific machine. Every row in machines_rotors and machines_reflectors is ALREADY a unique physical component. To answer 'how many unique rotors/reflectors' or 'total rotors', you MUST count the primary keys using COUNT(id) or COUNT(*).";
+                    "4. Be highly forgiving of typos and spelling mistakes (e.g., 'masages'). Try your best to infer the user's intent.\n" +
+                    "5. Return EXACTLY the string 'ERROR_INVALID_CONTEXT' ONLY if the user's prompt is completely unrelated to the Enigma system or data analysis.\n" +
+                    "6. CRITICAL COUNTING RULE: NEVER use COUNT(DISTINCT rotor_id) or COUNT(DISTINCT reflector_id). Every row in machines_rotors and machines_reflectors is ALREADY a unique physical component. To answer 'how many unique rotors/reflectors' or 'total rotors', you MUST count the primary keys using COUNT(id) or COUNT(*).\n" +
+                    "</RULES>\n\n" +
+                    "<EXAMPLES>\n" +
+                    "User: how many unique rotors are in the system?\n" +
+                    "SQL: SELECT COUNT(id) FROM machines_rotors;\n\n" +
+                    "User: what is the longest message processing time for the sanity machine?\n" +
+                    "SQL: SELECT MAX(p.time) FROM processing p JOIN machines m ON p.machine_id = m.id WHERE m.name = 'sanity';\n\n" +
+                    "User: write me a python script\n" +
+                    "SQL: ERROR_INVALID_CONTEXT\n" +
+                    "</EXAMPLES>";
 
     public AIResponseDTO handleAIQuery(String userQuery) {
         // Step 1: Text-to-SQL
