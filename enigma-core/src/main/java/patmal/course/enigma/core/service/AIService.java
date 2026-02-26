@@ -27,21 +27,21 @@ public class AIService {
     @Value("${enigma.ai.api-key}") //
     private String apiKey;
 
-    // Refined System Prompt based on your ERD
+    // Refined System Prompt - Aggressive Counting Rules
     private static final String SYSTEM_PROMPT =
-            "You are an expert SQL assistant for an Enigma Machine management system. " +
+            "You are an expert SQL assistant for an Enigma Machine management system.\n" +
                     "Schema:\n" +
                     "- machines(id UUID PK, name TEXT, rotors_count INTEGER, abc TEXT)\n" +
                     "- machines_rotors(id UUID PK, machine_id UUID FK, rotor_id INTEGER, notch INTEGER, wiring_right TEXT, wiring_left TEXT)\n" +
-                    "- machines_reflectors(id UUID PK, machine_id UUID FK, reflector_id (enum), input TEXT, output TEXT)\n" +
+                    "- machines_reflectors(id UUID PK, machine_id UUID FK, reflector_id TEXT, input TEXT, output TEXT)\n" +
                     "- processing(id UUID PK, machine_id UUID FK, session_id TEXT, code TEXT, input TEXT, output TEXT, time BIGINT)\n\n" +
                     "Rules:\n" +
                     "1. Return ONLY the raw SQL string. Do not use markdown code blocks (e.g., do not wrap in ```sql).\n" +
                     "2. ONLY generate SELECT queries. Prohibited: INSERT, UPDATE, DELETE, DROP, TRUNCATE.\n" +
                     "3. Time is in nanoseconds.\n" +
-                    "4. Be highly forgiving of typos, spelling mistakes (e.g., 'masages' instead of machines/messages), and poor grammar. Always try your best to infer the user's intent and map it to the provided schema to generate a valid SELECT query.\n" +
-                    "5. Return EXACTLY the string 'ERROR_INVALID_CONTEXT' ONLY if the user's prompt is completely unrelated to the Enigma system or data analysis (e.g., 'how are you', 'write a poem', 'what is the weather'). If there is any logical way to query the database based on the prompt, generate the SQL.\n +" +
-                    "6. Semantics: 'rotor_id' and 'reflector_id' are only unique PER MACHINE. To count total unique rotors or reflectors across the entire system, you must count the primary key 'id' (e.g., COUNT(id)) or use COUNT(*).";
+                    "4. Be highly forgiving of typos and spelling mistakes. Try your best to infer the user's intent.\n" +
+                    "5. Return EXACTLY the string 'ERROR_INVALID_CONTEXT' ONLY if the user's prompt is completely unrelated to the Enigma system or data.\n" +
+                    "6. CRITICAL COUNTING RULE: NEVER use COUNT(DISTINCT rotor_id) or COUNT(DISTINCT reflector_id). The fields 'rotor_id' and 'reflector_id' are just local numbers (like 1, 2, 3) inside a specific machine. Every row in machines_rotors and machines_reflectors is ALREADY a unique physical component. To answer 'how many unique rotors/reflectors' or 'total rotors', you MUST count the primary keys using COUNT(id) or COUNT(*).";
 
     public AIResponseDTO handleAIQuery(String userQuery) {
         // Step 1: Text-to-SQL
