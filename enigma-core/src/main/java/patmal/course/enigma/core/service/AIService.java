@@ -14,6 +14,10 @@ import java.util.*;
 public class AIService {
     private final JdbcTemplate jdbcTemplate;
     private final RestTemplate restTemplate;
+    private static final String INVALID_CONTEXT_RESPONSE =
+            "I can only answer questions related to the Enigma machine's data and processing history.";
+    private static final String DB_FETCH_FAILED_RESPONSE =
+            "I could not fetch information from the database for that request after retrying. Please try asking something else.";
 
     public AIService(JdbcTemplate jdbcTemplate, RestTemplate restTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -40,25 +44,29 @@ public class AIService {
 
     public AIResponseDTO handleAIQuery(String userQuery) {
         // Step 1: Text-to-SQL
-        String sqlPrompt = SYSTEM_PROMPT + "\nUser Request: " + userQuery;
-        String generatedSql = callOpenAI(sqlPrompt)
-                .replaceAll("```sql|```", "") // Clean AI Markdown
-                .trim();
-
+        String generatedSql = generateInitialSql(userQuery);
         if ("ERROR_INVALID_CONTEXT".equals(generatedSql)) {
-            return new AIResponseDTO(
-                    "I can only answer questions related to the Enigma machine's data and processing history.",
-                    null
-            );
+            return new AIResponseDTO(INVALID_CONTEXT_RESPONSE, null);
         }
 
-        // Security Check: Ensure it is a read-only SELECT
-        if (!generatedSql.toUpperCase().startsWith("SELECT")) {
-            throw new SecurityException("Only SELECT queries are allowed.");
-        }
+        List<Map<String, Object>> dbResults;
+        String executedSql = generatedSql;
 
-        // Step 2: Execute SQL dynamically
-        List<Map<String, Object>> dbResults = jdbcTemplate.queryForList(generatedSql);
+        try {
+            dbResults = executeReadOnlySql(generatedSql);
+        } catch (Exception firstFailure) {
+            String correctedSql = generateCorrectedSql(userQuery, generatedSql, firstFailure);
+            if ("ERROR_INVALID_CONTEXT".equals(correctedSql)) {
+                return new AIResponseDTO(INVALID_CONTEXT_RESPONSE, null);
+            }
+
+            try {
+                dbResults = executeReadOnlySql(correctedSql);
+                executedSql = correctedSql;
+            } catch (Exception secondFailure) {
+                return new AIResponseDTO(DB_FETCH_FAILED_RESPONSE, null);
+            }
+        }
 
         // Step 3: Natural Language Response
         String finalPrompt = String.format(
@@ -68,12 +76,47 @@ public class AIService {
                         "Do NOT use any markdown formatting. " +
                         "Do NOT use asterisks (*), hashtags (#), or bullet points. " +
                         "Do NOT use explicit newline characters (\\n) or carriage returns. " +
-                        "Write the entire summary as a single, continuous, plain-text paragraph.",
+                "Write the entire summary as a single, continuous, plain-text paragraph.",
                 userQuery, dbResults.toString()
         );
         String finalAnswer = callOpenAI(finalPrompt);
 
-        return new AIResponseDTO(finalAnswer, generatedSql);
+        return new AIResponseDTO(finalAnswer, executedSql);
+    }
+
+    private String generateInitialSql(String userQuery) {
+        String sqlPrompt = SYSTEM_PROMPT + "\nUser Request: " + userQuery;
+        return sanitizeSql(callOpenAI(sqlPrompt));
+    }
+
+    private String generateCorrectedSql(String userQuery, String failedSql, Exception failure) {
+        String correctionPrompt = SYSTEM_PROMPT + "\n" +
+                "The previous SQL failed when executed.\n" +
+                "Original user request: " + userQuery + "\n" +
+                "Failed SQL: " + failedSql + "\n" +
+                "Database/validation error: " + Optional.ofNullable(failure.getMessage()).orElse("No error details") + "\n" +
+                "Analyze what was wrong and return a corrected SQL query that satisfies the original request. " +
+                "Return ONLY raw SQL.";
+        return sanitizeSql(callOpenAI(correctionPrompt));
+    }
+
+    private List<Map<String, Object>> executeReadOnlySql(String sql) {
+        if (!isReadOnlySql(sql)) {
+            throw new IllegalArgumentException("Only read-only SELECT queries are allowed.");
+        }
+        return jdbcTemplate.queryForList(sql);
+    }
+
+    private boolean isReadOnlySql(String sql) {
+        String normalized = sql == null ? "" : sql.stripLeading().toUpperCase(Locale.ROOT);
+        return normalized.startsWith("SELECT") || normalized.startsWith("WITH");
+    }
+
+    private String sanitizeSql(String rawSql) {
+        return rawSql
+                .replaceAll("(?i)```sql", "")
+                .replace("```", "")
+                .trim();
     }
 
     private String callOpenAI(String prompt) {
