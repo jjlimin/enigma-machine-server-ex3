@@ -16,6 +16,7 @@
         <module>enigma-machine</module>
         <module>enigma-engine</module>
         <module>enigma-loader</module>
+        <module>enigma-sessions</module>
     </modules>
 
     <properties>
