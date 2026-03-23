@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>patmal.course.enigma</groupId>
-        <artifactId>test-enigma-machine-server-ex3</artifactId>
+        <artifactId>enigma-machine-server-ex3</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
